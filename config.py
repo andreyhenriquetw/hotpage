@@ -46,7 +46,7 @@ class Config:
     # =========================
     PUSHINPAY_TOKEN = os.getenv(
         "PUSHINPAY_TOKEN",
-        "68539|vIqfbDD4MokYmJYVvM3Wa3umcM7z2GKJgWzO7QmL788030d5"
+        "68542|jgcGqN8iwf9fVhIhMfMbQO8gajsRshLOfflKQGTJfa8e8471"
     )
 
     PUSHINPAY_CREATE_URL = os.getenv(

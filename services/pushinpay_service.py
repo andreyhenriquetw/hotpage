@@ -6,6 +6,17 @@ import urllib.request
 from config import Config
 
 
+def format_amount(value):
+   
+    try:
+        num_value = float(value)
+        if num_value > 100:
+            num_value = num_value / 100
+        return f"{num_value:.2f}"
+    except (ValueError, TypeError):
+        return "0.00"
+
+
 PLAN_PRICES = {
     "vip-completo": 1.00,
     "vip-basico": 1.00,
@@ -139,10 +150,10 @@ def create_checkout(
             or response.get("qrcode")
             or response.get("qr")
         ),
-        "amount": (
+        "amount": format_amount(
             response.get("amount")
             or response.get("value")
-            or f"{value / 100:.2f}"
+            or value
         ),
         "status": normalized_status,
     }

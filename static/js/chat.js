@@ -1,8 +1,8 @@
 const ASSISTANT_NAME = "DANIELA LIMA 🔥";
 const INITIAL_ASSISTANT_MESSAGE = "Ei... tem alguém aí pra bater papo? 🙊";
 const VIP_PLAN_PRICES = {
-  "vip-completo": "19.99",
-  "vip-basico": "12.99",
+  "vip-completo": "1.00",
+  "vip-basico": "1.00",
 };
 
 const chatArea = document.getElementById("chat-area");
@@ -206,6 +206,8 @@ function createVipPopup() {
     const qrCode = data.qr_code || "";
     const status = data.status || "pending";
 
+    const pixDisplay = pixCode.substring(0, 45) + "...";
+
     container.innerHTML = `
       <h3 class="vip-main-title">Pague com PIX</h3>
       <div class="pix-info">
@@ -215,7 +217,7 @@ function createVipPopup() {
         </div>
         <div class="pix-info-row">
           <span class="pix-info-label">Código Pix</span>
-          <pre class="pix-copy-text">${pixCode}</pre>
+          <pre class="pix-copy-text" data-full-pix="${pixCode}">${pixDisplay}</pre>
           <button type="button" class="pix-copy-button">Copiar</button>
         </div>
         <div class="pix-status-row">
@@ -231,7 +233,10 @@ function createVipPopup() {
     const copyBtn = container.querySelector(".pix-copy-button");
     if (copyBtn) {
       copyBtn.addEventListener("click", () => {
-        navigator.clipboard.writeText(pixCode || "");
+        const fullPix = container
+          .querySelector(".pix-copy-text")
+          .getAttribute("data-full-pix");
+        navigator.clipboard.writeText(fullPix || "");
         copyBtn.textContent = "Copiado!";
         setTimeout(() => (copyBtn.textContent = "Copiar"), 1500);
       });
@@ -310,9 +315,9 @@ function createVipPopup() {
           <p class="success-message">Pagamento aprovado com sucesso!</p>
           <p class="success-subtitle">Toque no botão abaixo para voltar à página e receber seu acesso VIP 🔥</p>
           <button type="button" class="success-button">
-            <span class="success-icon">⚡</span>
-            RECEBER MEU VIP AGORA
-          </button>
+          <span class="success-icon">⚡</span>
+          RECEBER MEU VIP AGORA
+         </button>
         </div>
       `;
       document.body.appendChild(successModal);
