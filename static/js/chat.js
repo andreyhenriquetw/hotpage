@@ -493,6 +493,23 @@ function showInitialAssistantMessage() {
   history.push({ role: "assistant", content: INITIAL_ASSISTANT_MESSAGE });
 }
 
+window.addEventListener("load", () => {
+
+  const loader =
+      document.getElementById("loading-screen");
+
+  setTimeout(() => {
+
+      loader.classList.add("hide");
+
+      setTimeout(() => {
+          loader.remove();
+      }, 600);
+
+  }, 3000);
+
+});
+
 initBackgroundVideo();
 showInitialAssistantMessage();
 userInput.focus();
