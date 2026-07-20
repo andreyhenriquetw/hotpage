@@ -279,8 +279,8 @@ function createVipPopup() {
           setTimeout(() => {
             hidePaymentPopup();
             hideVipPopup();
-            window.location.href = "/premium";
-          }, 800);
+            showPaymentSuccessModal();
+          }, 300);
         }
       })
       .catch((err) => {
@@ -295,6 +295,38 @@ function createVipPopup() {
   const updatePushinpayStatusText = (st) => {
     const el = document.querySelector("#vip-payment-popup .pix-status-text");
     if (el) el.textContent = st || "pending";
+  };
+
+  const showPaymentSuccessModal = () => {
+    let successModal = document.getElementById("payment-success-modal");
+    if (!successModal) {
+      successModal = document.createElement("div");
+      successModal.id = "payment-success-modal";
+      successModal.className = "payment-success-modal";
+      successModal.innerHTML = `
+        <div style="text-align: center;">
+          <div class="success-checkmark">✓</div>
+          <h2 class="success-title">PAGAMENTO<span>CONFIRMADO!</span></h2>
+          <p class="success-message">Pagamento aprovado com sucesso!</p>
+          <p class="success-subtitle">Toque no botão abaixo para voltar à página e receber seu acesso VIP 🔥</p>
+          <button type="button" class="success-button">
+            <span class="success-icon">⚡</span>
+            RECEBER MEU VIP AGORA
+          </button>
+        </div>
+      `;
+      document.body.appendChild(successModal);
+
+      successModal
+        .querySelector(".success-button")
+        .addEventListener("click", () => {
+          window.location.href = "/premium";
+        });
+    }
+
+    requestAnimationFrame(() => {
+      successModal.classList.add("visible");
+    });
   };
 }
 
