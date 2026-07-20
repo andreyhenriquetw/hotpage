@@ -7,8 +7,8 @@ from config import Config
 
 
 PLAN_PRICES = {
-    "vip-completo": 1999,
-    "vip-basico": 1299,
+    "vip-completo": 1.00,
+    "vip-basico": 1.00,
 }
 
 
