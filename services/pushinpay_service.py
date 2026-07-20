@@ -80,12 +80,11 @@ def create_checkout(
 
     payload = {
         "value": value,
+        "currency": "BRL",
     }
 
     if Config.PUSHINPAY_WEBHOOK_URL:
-        payload["webhook_url"] = (
-            Config.PUSHINPAY_WEBHOOK_URL
-        )
+        payload["webhook_url"] = Config.PUSHINPAY_WEBHOOK_URL
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -100,29 +99,52 @@ def create_checkout(
         headers=headers,
     )
 
+    status = (
+        response.get("status")
+        or response.get("payment_status")
+        or response.get("transaction_status")
+        or response.get("state")
+        or "pending"
+    )
+
+    normalized_status = str(status).strip().lower()
+    if normalized_status in {"paid", "pago", "confirmed", "approved", "completed"}:
+        normalized_status = "paid"
+    elif normalized_status in {"pending", "processing", "waiting", "created", "in_progress"}:
+        normalized_status = "pending"
+    else:
+        normalized_status = normalized_status or "pending"
+
     return {
         "transaction_id": (
             response.get("id")
             or response.get("transaction_id")
+            or response.get("transactionId")
+            or response.get("codigo")
+            or response.get("charge_id")
         ),
-
         "pix_code": (
-            response.get("qr_code")
-            or response.get("pix_code")
+            response.get("pix_code")
+            or response.get("pix")
+            or response.get("copy_paste")
+            or response.get("payload")
+            or response.get("qr_code")
+            or response.get("qrcode")
+            or response.get("qr")
         ),
-
         "qr_code": (
             response.get("qr_code_base64")
             or response.get("qr_base64")
             or response.get("qr_code")
+            or response.get("qrcode")
+            or response.get("qr")
         ),
-
-        "amount": f"{value / 100:.2f}",
-
-        "status": (
-            response.get("status")
-            or "pending"
+        "amount": (
+            response.get("amount")
+            or response.get("value")
+            or f"{value / 100:.2f}"
         ),
+        "status": normalized_status,
     }
 
 
@@ -154,14 +176,28 @@ def get_checkout_status(
         headers=headers,
     )
 
+    status = (
+        response.get("status")
+        or response.get("payment_status")
+        or response.get("transaction_status")
+        or response.get("state")
+        or "pending"
+    )
+
+    normalized_status = str(status).strip().lower()
+    if normalized_status in {"paid", "pago", "confirmed", "approved", "completed"}:
+        normalized_status = "paid"
+    elif normalized_status in {"pending", "processing", "waiting", "created", "in_progress"}:
+        normalized_status = "pending"
+    else:
+        normalized_status = normalized_status or "pending"
+
     return {
         "transaction_id": (
             response.get("id")
+            or response.get("transaction_id")
+            or response.get("transactionId")
             or transaction_id
         ),
-
-        "status": (
-            response.get("status")
-            or "pending"
-        ),
+        "status": normalized_status,
     }

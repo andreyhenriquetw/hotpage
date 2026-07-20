@@ -265,9 +265,16 @@ function createVipPopup() {
       .then((res) => res.json().then((b) => ({ ok: res.ok, body: b })))
       .then(({ ok, body }) => {
         if (!ok || body.error) throw new Error(body.error || "Erro status");
-        updatePushinpayStatusText(body.status || "pending");
-        const st = (body.status || "").toLowerCase();
-        if (st === "paid" || st === "pago") {
+        const nextStatus = (body.status || "pending").toLowerCase();
+        updatePushinpayStatusText(nextStatus || "pending");
+        const paidSignals = [
+          "paid",
+          "pago",
+          "confirmed",
+          "approved",
+          "completed",
+        ];
+        if (paidSignals.includes(nextStatus)) {
           if (pushinpayInterval) clearInterval(pushinpayInterval);
           setTimeout(() => {
             hidePaymentPopup();
