@@ -766,3 +766,101 @@ body {
       0 0 16px rgba(34, 197, 94, 0.15);
   }
 }
+
+.pix-back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto 16px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* PIX modal styles */
+.pix-content {
+  margin-top: 12px;
+}
+.pix-loading,
+.pix-error {
+  padding: 18px;
+  text-align: center;
+}
+.pix-qr {
+  display: grid;
+  place-items: center;
+  margin: 14px 0;
+}
+.pix-qr img {
+  width: min(220px, 100%);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 12px;
+}
+.pix-qr-placeholder {
+  color: rgba(255, 255, 255, 0.6);
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+}
+.pix-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+.pix-info-row,
+.pix-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+}
+.pix-info-label,
+.pix-status-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+.pix-copy-text {
+  flex: 1;
+  margin: 0;
+  font-family: monospace;
+  font-size: 12px;
+  color: #fff;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.pix-copy-button {
+  margin-left: 12px;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.pix-copy-button:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+.pix-status-text {
+  color: #d6ff7b;
+  font-weight: 700;
+}
+.pix-paid-button {
+  margin-top: 10px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  background: #18a048;
+  color: #fff;
+  border: none;
+  font-weight: 800;
+}

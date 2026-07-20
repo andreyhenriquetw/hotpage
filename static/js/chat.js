@@ -1,5 +1,9 @@
 const ASSISTANT_NAME = "DANIELA LIMA 🔥";
 const INITIAL_ASSISTANT_MESSAGE = "Ei... tem alguém aí pra bater papo? 🙊";
+const VIP_PLAN_PRICES = {
+  "vip-completo": "19.99",
+  "vip-basico": "12.99",
+};
 
 const chatArea = document.getElementById("chat-area");
 const userInput = document.getElementById("user-input");
@@ -79,15 +83,15 @@ function createVipPopup() {
         <li><span>⭐</span> PASSO MEU WHATSAPP PESSOAL AGORA</li>
         <li><span>⭐</span> A GENTE MARCA DE SE VER AÍ</li>
       </ul>
-      <a class="vip-pill" href="/comprar-vip" target="_blank" rel="noopener">🔒 SIGILO TOTAL</a>
+      <button class="vip-pill" type="button" data-plan-id="vip-completo">🔒 SIGILO TOTAL</button>
       <div class="vip-offer-label">OFERTA ÚNICA</div>
       <div class="vip-pricing">
         <span class="vip-old-price">De R$ 39,98</span>
         <strong class="vip-price">R$ 19,99</strong>
       </div>
       <div class="vip-actions">
-        <a class="vip-action vip-action-primary" href="/comprar-vip" target="_blank" rel="noopener">ACESSO COMPLETO (R$ 19,99)</a>
-        <a class="vip-action vip-action-secondary" href="/comprar-basico" target="_blank" rel="noopener">ACESSO BÁSICO (R$ 12,99)</a>
+        <button class="vip-action vip-action-primary" type="button" data-plan-id="vip-completo">ACESSO COMPLETO (R$ 19,99)</button>
+        <button class="vip-action vip-action-secondary" type="button" data-plan-id="vip-basico">ACESSO BÁSICO (R$ 12,99)</button>
       </div>
     </div>
   `;
@@ -98,6 +102,193 @@ function createVipPopup() {
   });
 
   document.body.appendChild(popup);
+
+  let paymentPopup = null;
+  let pushinpayInterval = null;
+
+  const createPaymentPopup = () => {
+    if (paymentPopup) return paymentPopup;
+
+    paymentPopup = document.createElement("div");
+    paymentPopup.id = "vip-payment-popup";
+    paymentPopup.className = "vip-popup";
+    paymentPopup.innerHTML = `
+      <div class="vip-card">
+        <button class="vip-close" aria-label="Fechar">×</button>
+        <div class="vip-header">
+          <span class="vip-badge">PAGAMENTO PIX <span class="vip-badge-icon">⚡</span></span>
+        </div>
+        <button type="button" class="pix-back-button">← Voltar</button>
+        <div class="pix-content">
+          <div class="pix-loading">Aguarde, preparando o pagamento...</div>
+        </div>
+      </div>
+    `;
+
+    paymentPopup.querySelector(".vip-close").addEventListener("click", () => {
+      hidePaymentPopup();
+      showVipPopup();
+    });
+    paymentPopup
+      .querySelector(".pix-back-button")
+      .addEventListener("click", () => {
+        hidePaymentPopup();
+        showVipPopup();
+      });
+    paymentPopup.addEventListener("click", (ev) => {
+      if (ev.target === paymentPopup) {
+        hidePaymentPopup();
+        showVipPopup();
+      }
+    });
+
+    document.body.appendChild(paymentPopup);
+    return paymentPopup;
+  };
+
+  const showPaymentPopup = (planId) => {
+    const payment = createPaymentPopup();
+    popup.classList.remove("visible");
+    payment.classList.add("visible");
+    loadPaymentForPlan(planId);
+  };
+
+  const hidePaymentPopup = () => {
+    if (!paymentPopup) return;
+    paymentPopup.classList.remove("visible");
+    if (pushinpayInterval) {
+      clearInterval(pushinpayInterval);
+      pushinpayInterval = null;
+    }
+  };
+
+  const loadPaymentForPlan = (planId) => {
+    const payment = createPaymentPopup();
+    const container = payment.querySelector(".pix-content");
+    if (!container) return;
+    container.innerHTML = `<div class="pix-loading">Gerando checkout para ${planId}...</div>`;
+
+    const amount = VIP_PLAN_PRICES[planId] || "0.00";
+
+    fetch("/pushinpay/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: planId, amount }),
+    })
+      .then((res) => res.json().then((b) => ({ ok: res.ok, body: b })))
+      .then(({ ok, body }) => {
+        if (!ok || body.error) {
+          throw new Error(body.error || "Erro ao criar checkout PushinPay.");
+        }
+        renderPushinpayModal(body);
+      })
+      .catch((err) => {
+        container.innerHTML = `<div class="pix-error">${err.message}</div>`;
+      });
+  };
+
+  popup.querySelectorAll(".vip-action, .vip-pill").forEach((el) => {
+    const plan = el.getAttribute("data-plan-id") || "vip-completo";
+    el.addEventListener("click", (e) => {
+      e.preventDefault();
+      showPaymentPopup(plan);
+    });
+  });
+
+  const renderPushinpayModal = (data) => {
+    const payment = createPaymentPopup();
+    const container = payment.querySelector(".pix-content");
+    if (!container) return;
+
+    const amount = data.amount || "0.00";
+
+    const pixCode = data.pix_code || "";
+    const qrCode = data.qr_code || "";
+    const status = data.status || "pending";
+
+    container.innerHTML = `
+      <h3 class="vip-main-title">Pague com PIX</h3>
+      <div class="pix-info">
+        <div class="pix-info-row">
+          <span class="pix-info-label">Valor</span>
+          <strong>R$ ${amount}</strong>
+        </div>
+        <div class="pix-info-row">
+          <span class="pix-info-label">Código Pix</span>
+          <pre class="pix-copy-text">${pixCode}</pre>
+          <button type="button" class="pix-copy-button">Copiar</button>
+        </div>
+        <div class="pix-status-row">
+          <span class="pix-status-label">Status</span>
+          <strong class="pix-status-text">${status}</strong>
+        </div>
+      </div>
+      <div class="pix-actions">
+        <button type="button" class="pix-paid-button">JÁ PAGUEI! LIBERAR MEU ACESSO</button>
+      </div>
+    `;
+
+    const copyBtn = container.querySelector(".pix-copy-button");
+    if (copyBtn) {
+      copyBtn.addEventListener("click", () => {
+        navigator.clipboard.writeText(pixCode || "");
+        copyBtn.textContent = "Copiado!";
+        setTimeout(() => (copyBtn.textContent = "Copiar"), 1500);
+      });
+    }
+
+    const paidBtn = container.querySelector(".pix-paid-button");
+    if (paidBtn) {
+      paidBtn.addEventListener("click", () => {
+        if (data.transaction_id) {
+          refreshPushinpayStatus(data.transaction_id);
+        }
+      });
+    }
+
+    startPushinpayPolling(data.transaction_id, status);
+  };
+
+  const startPushinpayPolling = (transactionId, currentStatus) => {
+    updatePushinpayStatusText(currentStatus);
+    if (pushinpayInterval) clearInterval(pushinpayInterval);
+    pushinpayInterval = setInterval(() => {
+      refreshPushinpayStatus(transactionId);
+    }, 5000);
+  };
+
+  const refreshPushinpayStatus = (transactionId) => {
+    if (!transactionId) return;
+    fetch(
+      `/pushinpay/status?transaction_id=${encodeURIComponent(transactionId)}`,
+    )
+      .then((res) => res.json().then((b) => ({ ok: res.ok, body: b })))
+      .then(({ ok, body }) => {
+        if (!ok || body.error) throw new Error(body.error || "Erro status");
+        updatePushinpayStatusText(body.status || "pending");
+        const st = (body.status || "").toLowerCase();
+        if (st === "paid" || st === "pago") {
+          if (pushinpayInterval) clearInterval(pushinpayInterval);
+          setTimeout(() => {
+            hidePaymentPopup();
+            hideVipPopup();
+            window.location.href = "/premium";
+          }, 800);
+        }
+      })
+      .catch((err) => {
+        const statusEl = document.querySelector(
+          "#vip-payment-popup .pix-status-text",
+        );
+        if (statusEl) statusEl.textContent = `erro: ${err.message}`;
+        if (pushinpayInterval) clearInterval(pushinpayInterval);
+      });
+  };
+
+  const updatePushinpayStatusText = (st) => {
+    const el = document.querySelector("#vip-payment-popup .pix-status-text");
+    if (el) el.textContent = st || "pending";
+  };
 }
 
 function showVipPopup() {

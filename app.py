@@ -2,6 +2,8 @@ from flask import Flask, jsonify, render_template, request
 
 from config import Config
 from services.grok_service import chat_with_grok
+from services.pix_service import create_pix_charge, get_pix_status
+from services.pushinpay_service import create_checkout, get_checkout_status
 
 app = Flask(__name__)
 
@@ -43,6 +45,69 @@ def chat():
         return jsonify({"response": reply})
     except Exception as exc:
         return jsonify({"error": f"Erro ao contactar a IA: {exc}"}), 502
+
+
+@app.route("/pix/create", methods=["POST"])
+def pix_create():
+    data = request.get_json(silent=True) or {}
+    plan_id = (data.get("plan_id") or "").strip()
+    amount = data.get("amount")
+    description = data.get("description", "Cobrança PIX")
+
+    if not plan_id or not amount:
+        return jsonify({"error": "Plano e valor são obrigatórios."}), 400
+
+    try:
+        charge = create_pix_charge(
+            plan_id=plan_id,
+            amount=amount,
+            description=description,
+        )
+        return jsonify(charge)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+@app.route("/pix/status", methods=["GET"])
+def pix_status():
+    transaction_id = (request.args.get("transaction_id") or "").strip()
+    if not transaction_id:
+        return jsonify({"error": "transaction_id é obrigatório."}), 400
+
+    try:
+        status = get_pix_status(transaction_id)
+        return jsonify(status)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+@app.route("/pushinpay/create", methods=["POST"])
+def pushinpay_create():
+    data = request.get_json(silent=True) or {}
+    plan = (data.get("plan") or "").strip()
+    amount = data.get("amount")
+
+    if not plan:
+        return jsonify({"error": "plan é obrigatório."}), 400
+
+    try:
+        result = create_checkout(token=None, plan=plan, amount=amount)
+        return jsonify(result)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 502
+
+
+@app.route("/pushinpay/status", methods=["GET"])
+def pushinpay_status():
+    transaction_id = (request.args.get("transaction_id") or "").strip()
+    if not transaction_id:
+        return jsonify({"error": "transaction_id é obrigatório."}), 400
+
+    try:
+        status = get_checkout_status(transaction_id)
+        return jsonify(status)
+    except Exception as exc:
+        return jsonify({"error": str(exc)}), 502
 
 
 if __name__ == "__main__":
