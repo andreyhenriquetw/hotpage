@@ -1,9 +1,18 @@
 const ASSISTANT_NAME = "DANIELA LIMA 🔥";
+const ASSISTANT_INITIAL = "D";
 const INITIAL_ASSISTANT_MESSAGE = "Ei... tem alguém aí pra bater papo? 🙊";
 const VIP_PLAN_PRICES = {
   "vip-completo": "1.00",
   "vip-basico": "1.00",
 };
+
+const VIP_BENEFIT_MESSAGES = [
+  "🔓 LIBERE O 💚 VIP COMPLETO 💚 E GANHE ACESSO A:",
+  "⭐ 😍 Tiro a roupa toda e fico nua pra você",
+  "⭐ 💦 Me masturbo bem gostoso com você ao vivo 📹",
+  "⭐ 📱 Passo meu WhatsApp pessoal agora",
+  "⭐ 📍 A gente marca de se ver aí 💖",
+];
 
 const chatArea = document.getElementById("chat-area");
 const userInput = document.getElementById("user-input");
@@ -14,6 +23,9 @@ const bgVideo = document.querySelector(".bg-video");
 
 let history = [];
 let isSending = false;
+let currentPlanId = null;
+let restorePaymentSession = null;
+let openPaymentSuccessModal = null;
 
 function showError(message) {
   errorBanner.textContent = message;
@@ -29,7 +41,7 @@ function scrollToBottom() {
   chatArea.scrollTop = chatArea.scrollHeight;
 }
 
-function addMessage(role, content) {
+function addMessage(role, content, { renderOnly = false } = {}) {
   const wrapper = document.createElement("div");
   wrapper.className = `message ${role}`;
 
@@ -47,7 +59,6 @@ function addMessage(role, content) {
 
     bubble.appendChild(name);
     bubble.appendChild(text);
-    // inserir CTA de VIP quando a mensagem mencionar venda de VIPs / chamada de vídeo
     const lower = content.toLowerCase();
     if (/(vip|vips|video|vídeo|chamada)/.test(lower)) {
       showVipButton();
@@ -59,6 +70,10 @@ function addMessage(role, content) {
   chatArea.insertBefore(wrapper, typingIndicator);
   wrapper.appendChild(bubble);
   scrollToBottom();
+
+  if (!renderOnly) {
+    saveHistory(history);
+  }
 }
 
 // --- VIP popup ---
@@ -105,57 +120,125 @@ function createVipPopup() {
 
   let paymentPopup = null;
   let pushinpayInterval = null;
+  let benefitAnimationTimer = null;
 
   const createPaymentPopup = () => {
     if (paymentPopup) return paymentPopup;
 
     paymentPopup = document.createElement("div");
     paymentPopup.id = "vip-payment-popup";
-    paymentPopup.className = "vip-popup";
+    paymentPopup.className = "pix-fullscreen-overlay";
     paymentPopup.innerHTML = `
-      <div class="vip-card">
-        <button class="vip-close" aria-label="Fechar">×</button>
-        <div class="vip-header">
-          <span class="vip-badge">PAGAMENTO PIX <span class="vip-badge-icon">⚡</span></span>
-        </div>
-        <button type="button" class="pix-back-button">← Voltar</button>
-        <div class="pix-content">
-          <div class="pix-loading">Aguarde, preparando o pagamento...</div>
+      <div class="pix-fullscreen-inner">
+        <div class="pix-benefit-messages" id="pix-benefit-messages"></div>
+        <div class="pix-bottom-sheet">
+          <div class="pix-sheet-header">
+            <span class="badge-pendente"><span class="badge-dot"></span> PAGAMENTO PENDENTE</span>
+            <button type="button" class="pix-sheet-close" aria-label="Fechar">×</button>
+          </div>
+          <div class="pix-content">
+            <div class="pix-loader-box">
+              <div class="pix-spinner"></div>
+              <p>Gerando chave PIX...</p>
+            </div>
+          </div>
         </div>
       </div>
     `;
 
-    paymentPopup.querySelector(".vip-close").addEventListener("click", () => {
-      hidePaymentPopup();
-      showVipPopup();
-    });
     paymentPopup
-      .querySelector(".pix-back-button")
+      .querySelector(".pix-sheet-close")
       .addEventListener("click", () => {
         hidePaymentPopup();
         showVipPopup();
       });
-    paymentPopup.addEventListener("click", (ev) => {
-      if (ev.target === paymentPopup) {
-        hidePaymentPopup();
-        showVipPopup();
-      }
-    });
 
     document.body.appendChild(paymentPopup);
     return paymentPopup;
   };
 
-  const showPaymentPopup = (planId) => {
+  const showBenefitMessagesInstant = () => {
+    const payment = createPaymentPopup();
+    const container = payment.querySelector("#pix-benefit-messages");
+    if (!container) return;
+
+    container.innerHTML = "";
+    VIP_BENEFIT_MESSAGES.forEach((msg) => {
+      const item = document.createElement("div");
+      item.className = "pix-benefit-msg visible";
+      item.innerHTML = `
+        <div class="pix-benefit-avatar">${ASSISTANT_INITIAL}</div>
+        <div class="pix-benefit-bubble">${msg}</div>
+      `;
+      container.appendChild(item);
+    });
+  };
+
+  const animateBenefitMessages = () => {
+    const payment = createPaymentPopup();
+    const container = payment.querySelector("#pix-benefit-messages");
+    if (!container) return;
+
+    container.innerHTML = "";
+    if (benefitAnimationTimer) clearInterval(benefitAnimationTimer);
+
+    let index = 0;
+
+    const showNext = () => {
+      if (index >= VIP_BENEFIT_MESSAGES.length) return;
+
+      const item = document.createElement("div");
+      item.className = "pix-benefit-msg";
+      item.innerHTML = `
+        <div class="pix-benefit-avatar">${ASSISTANT_INITIAL}</div>
+        <div class="pix-benefit-bubble">${VIP_BENEFIT_MESSAGES[index]}</div>
+      `;
+      container.appendChild(item);
+
+      requestAnimationFrame(() => {
+        item.classList.add("visible");
+      });
+
+      index += 1;
+    };
+
+    showNext();
+    benefitAnimationTimer = setInterval(() => {
+      if (index >= VIP_BENEFIT_MESSAGES.length) {
+        clearInterval(benefitAnimationTimer);
+        benefitAnimationTimer = null;
+        return;
+      }
+      showNext();
+    }, 650);
+  };
+
+  const openPaymentOverlay = (animateBenefits = true) => {
     const payment = createPaymentPopup();
     popup.classList.remove("visible");
+    document.body.classList.add("payment-active");
     payment.classList.add("visible");
+    if (animateBenefits) {
+      animateBenefitMessages();
+    } else {
+      showBenefitMessagesInstant();
+    }
+  };
+
+  const showPaymentPopup = (planId) => {
+    currentPlanId = planId;
+    openPaymentOverlay(true);
     loadPaymentForPlan(planId);
   };
 
   const hidePaymentPopup = () => {
     if (!paymentPopup) return;
     paymentPopup.classList.remove("visible");
+    document.body.classList.remove("payment-active");
+    if (benefitAnimationTimer) {
+      clearInterval(benefitAnimationTimer);
+      benefitAnimationTimer = null;
+    }
     if (pushinpayInterval) {
       clearInterval(pushinpayInterval);
       pushinpayInterval = null;
@@ -166,7 +249,12 @@ function createVipPopup() {
     const payment = createPaymentPopup();
     const container = payment.querySelector(".pix-content");
     if (!container) return;
-    container.innerHTML = `<div class="pix-loading">Gerando forma de pagamento ${planId}...</div>`;
+    container.innerHTML = `
+      <div class="pix-loader-box">
+        <div class="pix-spinner"></div>
+        <p>Gerando chave PIX...</p>
+      </div>
+    `;
 
     const amount = VIP_PLAN_PRICES[planId] || "0.00";
 
@@ -195,39 +283,34 @@ function createVipPopup() {
     });
   });
 
-  const renderPushinpayModal = (data) => {
+  const renderPushinpayModal = (data, { instant = false } = {}) => {
     const payment = createPaymentPopup();
     const container = payment.querySelector(".pix-content");
     if (!container) return;
-  
+
     const pixCode = data.pix_code || "";
     const transactionId = data.transaction_id || "";
-  
-    // 1. Exibe a tela de carregamento de 1 segundo
-    container.innerHTML = `
-      <div class="pix-loader-box">
-        <div class="pix-spinner"></div>
-        <p>Gerando chave PIX...</p>
-      </div>
-    `;
-  
-    // 2. Após 1 segundo, insere o layout exato da imagem
-    setTimeout(() => {
+    const status = data.status || "pending";
+
+    savePayment({
+      planId: currentPlanId || data.plan_id || "vip-completo",
+      transactionId,
+      pixCode,
+      status,
+    });
+
+    const renderContent = () => {
       container.innerHTML = `
         <div class="pix-modal-custom">
-          <div class="pix-header-status">
-            <span class="badge-pendente">🔴 PAGAMENTO PENDENTE</span>
-          </div>
-          
           <h2 class="pix-title">🔥 DANIELA LIMA COMEÇOU!</h2>
           <p class="pix-subtitle">Vídeo chamada iniciada... Realize o pagamento para participar!</p>
-          
+
           <div class="pix-steps">
             <span class="step"><i class="step-num">1</i> Copie o código</span>
             <span class="step-arrow">→</span>
             <span class="step"><i class="step-num">2</i> Cole no App do Banco</span>
           </div>
-  
+
           <button type="button" class="pix-btn-copy" id="btn-copy-pix">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -235,17 +318,17 @@ function createVipPopup() {
             </svg>
             <span id="btn-copy-text">CLIQUE PARA COPIAR O PIX</span>
           </button>
-  
+
           <div class="pix-footer-status">
-            <span class="dot-green"></span> Aguardando pagamento...
+            <span class="dot-green"></span>
+            <span class="pix-status-text">Aguardando pagamento...</span>
           </div>
         </div>
       `;
-  
-      // Evento de copiar a chave Pix
+
       const copyBtn = container.querySelector("#btn-copy-pix");
       const copyText = container.querySelector("#btn-copy-text");
-  
+
       if (copyBtn) {
         copyBtn.addEventListener("click", () => {
           navigator.clipboard.writeText(pixCode);
@@ -257,10 +340,37 @@ function createVipPopup() {
           }, 2500);
         });
       }
-  
-      // Inicia a verificação automática de pagamento
-      startPushinpayPolling(transactionId, data.status || "pending");
-    }, 1000); // 1000ms = 1 segundo de delay
+
+      startPushinpayPolling(transactionId, status);
+    };
+
+    if (instant) {
+      renderContent();
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="pix-loader-box">
+        <div class="pix-spinner"></div>
+        <p>Gerando chave PIX...</p>
+      </div>
+    `;
+
+    setTimeout(renderContent, 1000);
+  };
+
+  restorePaymentSession = (savedPayment) => {
+    currentPlanId = savedPayment.planId || "vip-completo";
+    openPaymentOverlay(false);
+    renderPushinpayModal(
+      {
+        pix_code: savedPayment.pixCode,
+        transaction_id: savedPayment.transactionId,
+        status: savedPayment.status || "pending",
+        plan_id: savedPayment.planId,
+      },
+      { instant: true },
+    );
   };
 
   const startPushinpayPolling = (transactionId, currentStatus) => {
@@ -290,11 +400,17 @@ function createVipPopup() {
         ];
         if (paidSignals.includes(nextStatus)) {
           if (pushinpayInterval) clearInterval(pushinpayInterval);
+          markPaymentConfirmed();
           setTimeout(() => {
             hidePaymentPopup();
             hideVipPopup();
             showPaymentSuccessModal();
           }, 300);
+        } else {
+          const saved = getValidPayment();
+          if (saved) {
+            savePayment({ ...saved, status: nextStatus });
+          }
         }
       })
       .catch((err) => {
@@ -308,7 +424,18 @@ function createVipPopup() {
 
   const updatePushinpayStatusText = (st) => {
     const el = document.querySelector("#vip-payment-popup .pix-status-text");
-    if (el) el.textContent = st || "pending";
+    if (!el) return;
+
+    const normalized = (st || "pending").toLowerCase();
+    const paidSignals = ["paid", "pago", "confirmed", "approved", "completed"];
+
+    if (paidSignals.includes(normalized)) {
+      el.textContent = "Pagamento confirmado!";
+      el.style.color = "#22c55e";
+    } else {
+      el.textContent = "Aguardando pagamento...";
+      el.style.color = "#22c55e";
+    }
   };
 
   const showPaymentSuccessModal = () => {
@@ -334,6 +461,7 @@ function createVipPopup() {
       successModal
         .querySelector(".success-button")
         .addEventListener("click", () => {
+          clearPaymentConfirmed();
           window.location.href = "/premium";
         });
     }
@@ -342,6 +470,8 @@ function createVipPopup() {
       successModal.classList.add("visible");
     });
   };
+
+  openPaymentSuccessModal = showPaymentSuccessModal;
 }
 
 function showVipPopup() {
@@ -388,12 +518,10 @@ function showVipButton() {
   const btn = document.getElementById("vip-floating");
   if (!btn) return;
   btn.classList.add("visible");
-  // adicionar classe à área de chat para criar espaço quando o botão aparece
+  saveVipButtonVisible(true);
   if (chatArea) chatArea.classList.add("vip-cta-visible");
-  // garantir que o chat role para cima para não ficar escondido pelo botão
   requestAnimationFrame(() => {
     scrollToBottom();
-    // adicionar margem extra ao último balão para não ficar perto do botão
     const last = chatArea && chatArea.querySelector(".message:last-of-type");
     if (last) last.classList.add("above-vip");
   });
@@ -403,8 +531,8 @@ function hideVipButton() {
   const btn = document.getElementById("vip-floating");
   if (!btn) return;
   btn.classList.remove("visible");
+  saveVipButtonVisible(false);
   if (chatArea) chatArea.classList.remove("vip-cta-visible");
-  // remover margem extra do último balão
   const last = chatArea && chatArea.querySelector(".message.above-vip");
   if (last) last.classList.remove("above-vip");
 }
@@ -431,7 +559,9 @@ async function sendMessage() {
   if (!message || isSending) return;
 
   hideError();
-  addMessage("user", message);
+  history.push({ role: "user", content: message });
+  saveHistory(history);
+  addMessage("user", message, { renderOnly: true });
   userInput.value = "";
   autoResizeTextarea();
   setLoading(true);
@@ -450,13 +580,15 @@ async function sendMessage() {
     }
 
     history.push({ role: "user", content: message });
+    saveHistory(history);
 
     if (data.response && data.response.length > 20) {
       await delay(6000);
     }
 
     history.push({ role: "assistant", content: data.response });
-    addMessage("assistant", data.response);
+    saveHistory(history);
+    addMessage("assistant", data.response, { renderOnly: true });
   } catch (error) {
     showError(error.message);
   } finally {
@@ -498,8 +630,51 @@ userInput.addEventListener("keydown", (event) => {
 userInput.addEventListener("input", autoResizeTextarea);
 
 function showInitialAssistantMessage() {
-  addMessage("assistant", INITIAL_ASSISTANT_MESSAGE);
   history.push({ role: "assistant", content: INITIAL_ASSISTANT_MESSAGE });
+  saveHistory(history);
+  addMessage("assistant", INITIAL_ASSISTANT_MESSAGE, { renderOnly: true });
+}
+
+function restoreChatFromStorage() {
+  const state = loadState();
+  history = Array.isArray(state.history) ? [...state.history] : [];
+
+  chatArea.querySelectorAll(".message").forEach((el) => el.remove());
+
+  if (history.length === 0) {
+    showInitialAssistantMessage();
+    return;
+  }
+
+  history.forEach((msg) => {
+    if (msg.role && msg.content) {
+      addMessage(msg.role, msg.content, { renderOnly: true });
+    }
+  });
+
+  if (state.vipButtonVisible) {
+    showVipButton();
+  }
+}
+
+function restorePaymentFromStorage() {
+  const state = loadState();
+
+  if (state.paymentConfirmed && openPaymentSuccessModal) {
+    openPaymentSuccessModal();
+    return;
+  }
+
+  const payment = getValidPayment();
+  if (payment?.pixCode && restorePaymentSession) {
+    restorePaymentSession(payment);
+  }
+}
+
+function restoreSession() {
+  restoreChatFromStorage();
+  createVipPopup();
+  restorePaymentFromStorage();
 }
 
 window.addEventListener("load", () => {
@@ -520,5 +695,5 @@ window.addEventListener("load", () => {
 });
 
 initBackgroundVideo();
-showInitialAssistantMessage();
+restoreSession();
 userInput.focus();
