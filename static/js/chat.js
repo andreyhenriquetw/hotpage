@@ -166,7 +166,7 @@ function createVipPopup() {
     const payment = createPaymentPopup();
     const container = payment.querySelector(".pix-content");
     if (!container) return;
-    container.innerHTML = `<div class="pix-loading">Gerando checkout para ${planId}...</div>`;
+    container.innerHTML = `<div class="pix-loading">Gerando forma de pagamento ${planId}...</div>`;
 
     const amount = VIP_PLAN_PRICES[planId] || "0.00";
 
@@ -199,59 +199,68 @@ function createVipPopup() {
     const payment = createPaymentPopup();
     const container = payment.querySelector(".pix-content");
     if (!container) return;
-
-    const amount = data.amount || "0.00";
-
+  
     const pixCode = data.pix_code || "";
-    const qrCode = data.qr_code || "";
-    const status = data.status || "pending";
-
-    const pixDisplay = pixCode.substring(0, 45) + "...";
-
+    const transactionId = data.transaction_id || "";
+  
+    // 1. Exibe a tela de carregamento de 1 segundo
     container.innerHTML = `
-      <h3 class="vip-main-title">Pague com PIX</h3>
-      <div class="pix-info">
-        <div class="pix-info-row">
-          <span class="pix-info-label">Valor</span>
-          <strong>R$ ${amount}</strong>
-        </div>
-        <div class="pix-info-row">
-          <span class="pix-info-label">Código Pix</span>
-          <pre class="pix-copy-text" data-full-pix="${pixCode}">${pixDisplay}</pre>
-          <button type="button" class="pix-copy-button">Copiar</button>
-        </div>
-        <div class="pix-status-row">
-          <span class="pix-status-label">Status</span>
-          <strong class="pix-status-text">${status}</strong>
-        </div>
-      </div>
-      <div class="pix-actions">
-        <button type="button" class="pix-paid-button">JÁ PAGUEI! LIBERAR MEU ACESSO</button>
+      <div class="pix-loader-box">
+        <div class="pix-spinner"></div>
+        <p>Gerando chave PIX...</p>
       </div>
     `;
-
-    const copyBtn = container.querySelector(".pix-copy-button");
-    if (copyBtn) {
-      copyBtn.addEventListener("click", () => {
-        const fullPix = container
-          .querySelector(".pix-copy-text")
-          .getAttribute("data-full-pix");
-        navigator.clipboard.writeText(fullPix || "");
-        copyBtn.textContent = "Copiado!";
-        setTimeout(() => (copyBtn.textContent = "Copiar"), 1500);
-      });
-    }
-
-    const paidBtn = container.querySelector(".pix-paid-button");
-    if (paidBtn) {
-      paidBtn.addEventListener("click", () => {
-        if (data.transaction_id) {
-          refreshPushinpayStatus(data.transaction_id);
-        }
-      });
-    }
-
-    startPushinpayPolling(data.transaction_id, status);
+  
+    // 2. Após 1 segundo, insere o layout exato da imagem
+    setTimeout(() => {
+      container.innerHTML = `
+        <div class="pix-modal-custom">
+          <div class="pix-header-status">
+            <span class="badge-pendente">🔴 PAGAMENTO PENDENTE</span>
+          </div>
+          
+          <h2 class="pix-title">🔥 DANIELA LIMA COMEÇOU!</h2>
+          <p class="pix-subtitle">Vídeo chamada iniciada... Realize o pagamento para participar!</p>
+          
+          <div class="pix-steps">
+            <span class="step"><i class="step-num">1</i> Copie o código</span>
+            <span class="step-arrow">→</span>
+            <span class="step"><i class="step-num">2</i> Cole no App do Banco</span>
+          </div>
+  
+          <button type="button" class="pix-btn-copy" id="btn-copy-pix">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span id="btn-copy-text">CLIQUE PARA COPIAR O PIX</span>
+          </button>
+  
+          <div class="pix-footer-status">
+            <span class="dot-green"></span> Aguardando pagamento...
+          </div>
+        </div>
+      `;
+  
+      // Evento de copiar a chave Pix
+      const copyBtn = container.querySelector("#btn-copy-pix");
+      const copyText = container.querySelector("#btn-copy-text");
+  
+      if (copyBtn) {
+        copyBtn.addEventListener("click", () => {
+          navigator.clipboard.writeText(pixCode);
+          copyText.textContent = "CÓDIGO COPIADO!";
+          copyBtn.classList.add("copied");
+          setTimeout(() => {
+            copyText.textContent = "CLIQUE PARA COPIAR O PIX";
+            copyBtn.classList.remove("copied");
+          }, 2500);
+        });
+      }
+  
+      // Inicia a verificação automática de pagamento
+      startPushinpayPolling(transactionId, data.status || "pending");
+    }, 1000); // 1000ms = 1 segundo de delay
   };
 
   const startPushinpayPolling = (transactionId, currentStatus) => {
