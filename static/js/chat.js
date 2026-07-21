@@ -515,7 +515,7 @@ window.addEventListener("load", () => {
           loader.remove();
       }, 600);
 
-  }, 3000);
+  }, 900);
 
 });
 
