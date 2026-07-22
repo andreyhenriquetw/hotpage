@@ -2,8 +2,8 @@ const ASSISTANT_NAME = "DANIELA LIMA 🔥";
 const ASSISTANT_INITIAL = "D";
 const INITIAL_ASSISTANT_MESSAGE = "Ei... tem alguém aí pra bater papo? 🙊";
 const VIP_PLAN_PRICES = {
-  "vip-completo": "1.00",
-  "vip-basico": "1.00",
+  "vip-completo": "09.0",
+  "vip-basico": "09.0",
 };
 
 const VIP_BENEFIT_MESSAGES = [
