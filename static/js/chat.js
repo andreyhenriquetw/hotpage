@@ -2,8 +2,8 @@ const ASSISTANT_NAME = "DANIELA LIMA 🔥";
 const ASSISTANT_INITIAL = "D";
 const INITIAL_ASSISTANT_MESSAGE = "Ei... tem alguém aí pra bater papo? 🙊";
 const VIP_PLAN_PRICES = {
-  "vip-completo": "01.00",
-  "vip-basico": "01.00",
+  "vip-completo": "1.00",
+  "vip-basico": "1.00",
 };
 
 const VIP_BENEFIT_MESSAGES = [
@@ -440,78 +440,6 @@ function createVipPopup() {
 
   // Função para exibir o modal de cadastro (Criar Sua Conta)
   // Função para exibir o modal de cadastro (Criar Sua Conta)
-  const showCreateAccountModal = () => {
-    let accountModal = document.getElementById("create-account-modal");
-
-    if (!accountModal) {
-      accountModal = document.createElement("div");
-      accountModal.id = "create-account-modal";
-      accountModal.className = "account-modal-overlay";
-      accountModal.innerHTML = `
-      <div class="account-modal-card">
-        <div class="account-icon-container">
-          <svg class="camera-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M23 7l-7 5 7 5V7z"/>
-            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-          </svg>
-        </div>
-        
-        <h2 class="account-title">CRIAR SUA CONTA</h2>
-        <p class="account-subtitle">Para acessar o conteúdo VIP, crie sua conta agora</p>
-        
-        <form id="create-account-form">
-          <div class="input-group">
-            <label for="reg-username">NOME DE USUÁRIO</label>
-            <input type="text" id="reg-username" placeholder="Digite seu usuário..." autocomplete="off">
-          </div>
-          
-          <div class="input-group">
-            <label for="reg-password">SENHA</label>
-            <input type="password" id="reg-password" placeholder="Crie uma senha...">
-          </div>
-          
-          <button type="submit" id="btn-submit-account" class="btn-submit-account" disabled>
-            CRIAR CONTA E CONTINUAR &rarr;
-          </button>
-        </form>
-        
-        <p class="account-footer-text">Seus dados são privados e seguros 🔒</p>
-      </div>
-    `;
-
-      document.body.appendChild(accountModal);
-
-      const userInput = accountModal.querySelector("#reg-username");
-      const passInput = accountModal.querySelector("#reg-password");
-      const submitBtn = accountModal.querySelector("#btn-submit-account");
-      const form = accountModal.querySelector("#create-account-form");
-
-      const validateInputs = () => {
-        const userValid = userInput.value.trim().length > 0;
-        const passValid = passInput.value.trim().length > 0;
-
-        if (userValid && passValid) {
-          submitBtn.removeAttribute("disabled");
-        } else {
-          submitBtn.setAttribute("disabled", "true");
-        }
-      };
-
-      userInput.addEventListener("input", validateInputs);
-      passInput.addEventListener("input", validateInputs);
-
-      // Ação ao enviar o formulário: fecha o formulário e abre o 2º gerador PIX
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-        accountModal.classList.remove("visible");
-        showSecurityPixModal();
-      });
-    }
-
-    requestAnimationFrame(() => {
-      accountModal.classList.add("visible");
-    });
-  };
 
   // --- NOVO: Modal de Verificação de Segurança (2º PIX) ---
   let securityPollingInterval = null;
