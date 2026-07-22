@@ -1482,3 +1482,592 @@ body.payment-active #error-banner {
   box-shadow: 0 0 8px #22c55e;
   animation: badgePulse 1.4s infinite ease-in-out;
 }
+
+/* Overlay e estrutura do Modal */
+.account-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  font-family: Arial, sans-serif;
+}
+
+.account-modal-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.account-modal-card {
+  background-color: #121212;
+  border: 1px solid #10b981; /* Borda verde glow */
+  border-radius: 16px;
+  padding: 32px 24px;
+  width: 90%;
+  max-width: 380px;
+  text-align: center;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+  box-sizing: border-box;
+}
+
+/* Ícone de Câmera */
+.account-icon-container {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 1px solid #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px auto;
+  background-color: rgba(5, 150, 105, 0.1);
+}
+
+.camera-icon {
+  width: 24px;
+  height: 24px;
+  stroke: #10b981;
+}
+
+/* Títulos */
+.account-title {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0 0 6px 0;
+  letter-spacing: 0.5px;
+}
+
+.account-subtitle {
+  color: #9ca3af;
+  font-size: 13px;
+  margin: 0 0 24px 0;
+}
+
+/* Formulário e Campos de Texto */
+.input-group {
+  text-align: left;
+  margin-bottom: 16px;
+}
+
+.input-group label {
+  display: block;
+  color: #d1d5db;
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 12px 14px;
+  background-color: #1e1e24;
+  border: 1px solid #2d2d35;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+
+.input-group input:focus {
+  border-color: #10b981;
+}
+
+.input-group input::placeholder {
+  color: #6b7280;
+}
+
+/* Botão com Estado Ativo e Desabilitado */
+.btn-submit-account {
+  width: 100%;
+  padding: 14px;
+  margin-top: 10px;
+  background-color: #059669;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Estado desabilitado (escurinho e travado) */
+.btn-submit-account:disabled {
+  background-color: #064e3b;
+  color: #6b7280;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Estado ativo (hover ao passar o mouse quando liberado) */
+.btn-submit-account:not(:disabled):hover {
+  background-color: #10b981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+}
+
+/* Rodapé */
+.account-footer-text {
+  color: #6b7280;
+  font-size: 11px;
+  margin-top: 16px;
+  margin-bottom: 0;
+}
+
+/* Overlay e Posição no Rodapé (Bottom Sheet) */
+.security-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: flex-end; /* Alinha o card no rodapé da tela */
+  justify-content: center;
+  z-index: 999999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  font-family: Arial, sans-serif;
+}
+
+.security-modal-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.security-bottom-sheet {
+  width: 100%;
+  max-width: 440px;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.security-modal-overlay.visible .security-bottom-sheet {
+  transform: translateY(0);
+}
+
+.security-card {
+  background-color: #121214;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 28px 20px 12px 20px;
+  text-align: center;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* Ícone de Cadeado */
+.security-lock-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+/* Títulos */
+.security-title {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.5px;
+}
+
+.security-subtitle {
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0 0 16px 0;
+}
+
+/* Badge Verificação Obrigatória */
+.security-badge-wrapper {
+  margin-bottom: 16px;
+}
+
+.security-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(234, 179, 8, 0.1);
+  border: 1px solid #eab308;
+  color: #eab308;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 20px;
+}
+
+.badge-dot-yellow {
+  width: 8px;
+  height: 8px;
+  background-color: #eab308;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Bloco do Valor */
+.security-price-box {
+  background-color: #18181b;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.security-price-label {
+  display: block;
+  color: #6b7280;
+  font-size: 10px;
+  font-weight: 700;
+  margin-bottom: 2px;
+  letter-spacing: 0.5px;
+}
+
+.security-price-value {
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+/* Passos 1 e 2 */
+.security-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #9ca3af;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+
+.sec-num {
+  background-color: #27272a;
+  color: #ffffff;
+  font-style: normal;
+  font-weight: bold;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  margin-right: 4px;
+}
+
+.sec-arrow {
+  color: #4b5563;
+}
+
+/* Botão COPIAR PIX Amarelo/Laranja */
+.security-btn-copy {
+  width: 100%;
+  padding: 15px;
+  background-color: #ff9900;
+  color: #000000;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition:
+    transform 0.1s ease,
+    background-color 0.2s ease;
+  margin-bottom: 14px;
+}
+
+.security-btn-copy:active {
+  transform: scale(0.98);
+}
+
+/* Status */
+.security-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #eab308;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+/* Barra inferior estilo iOS/Android */
+.sheet-bottom-bar {
+  width: 130px;
+  height: 4px;
+  background-color: #3f3f46;
+  border-radius: 2px;
+  margin: 0 auto;
+}
+
+/* Overlay e Card do Verificando Atividade */
+.activity-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  font-family: Arial, sans-serif;
+}
+
+.activity-modal-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.activity-card {
+  background-color: #121214;
+  border: 1px solid rgba(239, 68, 68, 0.3); /* Borda sutil com tom avermelhado */
+  border-radius: 16px;
+  padding: 32px 24px;
+  width: 85%;
+  max-width: 320px;
+  text-align: center;
+  box-sizing: border-box;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.8);
+}
+
+/* Spinner Vermelho Giratório */
+.activity-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(239, 68, 68, 0.2);
+  border-top-color: #ef4444; /* Vermelho forte */
+  border-radius: 50%;
+  margin: 0 auto 16px auto;
+  animation: activity-spin 0.8s linear infinite;
+}
+
+@keyframes activity-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Texto de Verificação */
+.activity-text {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.3px;
+}
+
+/* Overlay e Card do Upgrade VIP */
+.upgrade-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  font-family: Arial, sans-serif;
+}
+
+.upgrade-modal-overlay.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.upgrade-card {
+  background-color: #121214;
+  border: 1px solid rgba(218, 34, 34, 0.3);
+  border-radius: 20px;
+  padding: 28px 20px;
+  width: 90%;
+  max-width: 380px;
+  text-align: center;
+  box-sizing: border-box;
+  box-shadow: 0 0 20px rgba(236, 72, 153, 0.15);
+}
+
+/* Badge Oferta Exclusiva */
+.upgrade-badge-wrapper {
+  margin-bottom: 14px;
+}
+
+.upgrade-badge {
+  display: inline-block;
+  background-color: rgba(236, 72, 153, 0.15);
+  border: 1px solid #eb3c3c;
+  color: #f37575;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+}
+
+/* Títulos */
+.upgrade-title {
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.5px;
+}
+
+.upgrade-subtitle {
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0 0 18px 0;
+}
+
+/* Bloco do Valor */
+.upgrade-price-box {
+  background-color: #1a1a1e;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 18px;
+}
+
+.upgrade-price-label {
+  display: block;
+  color: #6b7280;
+  font-size: 10px;
+  font-weight: 700;
+  margin-bottom: 2px;
+  letter-spacing: 0.5px;
+}
+
+.upgrade-price-value {
+  color: #ffffff;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+/* Passos 1 e 2 */
+.upgrade-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #9ca3af;
+  font-size: 12px;
+  margin-bottom: 18px;
+}
+
+.up-num {
+  background-color: #27272a;
+  color: #ffffff;
+  font-style: normal;
+  font-weight: bold;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  margin-right: 4px;
+}
+
+.up-arrow {
+  color: #4b5563;
+}
+
+/* Botão de Copiar PIX */
+.upgrade-btn-copy {
+  width: 100%;
+  padding: 15px;
+  background-color: #e11d48;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition:
+    transform 0.1s ease,
+    background-color 0.2s ease;
+  margin-bottom: 14px;
+}
+
+.upgrade-btn-copy:active {
+  transform: scale(0.98);
+}
+
+.upgrade-btn-copy:hover {
+  background-color: #be123c;
+}
+
+/* Status */
+.upgrade-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #f472b6;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-dot-pink {
+  width: 8px;
+  height: 8px;
+  background-color: #ec4899;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Ícone de aviso em cima da oferta */
+.upgrade-warning-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+/* Estado do conteúdo enquanto bloqueado */
+.vip-content-locked {
+  filter: blur(8px);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Estado do conteúdo após a confirmação do pagamento */
+.vip-content-unlocked {
+  filter: none !important;
+  pointer-events: auto !important;
+  user-select: auto !important;
+  transition: filter 0.5s ease;
+}

@@ -438,31 +438,399 @@ function createVipPopup() {
     }
   };
 
+  // Função para exibir o modal de cadastro (Criar Sua Conta)
+  // Função para exibir o modal de cadastro (Criar Sua Conta)
+  const showCreateAccountModal = () => {
+    let accountModal = document.getElementById("create-account-modal");
+
+    if (!accountModal) {
+      accountModal = document.createElement("div");
+      accountModal.id = "create-account-modal";
+      accountModal.className = "account-modal-overlay";
+      accountModal.innerHTML = `
+      <div class="account-modal-card">
+        <div class="account-icon-container">
+          <svg class="camera-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 7l-7 5 7 5V7z"/>
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+          </svg>
+        </div>
+        
+        <h2 class="account-title">CRIAR SUA CONTA</h2>
+        <p class="account-subtitle">Para acessar o conteúdo VIP, crie sua conta agora</p>
+        
+        <form id="create-account-form">
+          <div class="input-group">
+            <label for="reg-username">NOME DE USUÁRIO</label>
+            <input type="text" id="reg-username" placeholder="Digite seu usuário..." autocomplete="off">
+          </div>
+          
+          <div class="input-group">
+            <label for="reg-password">SENHA</label>
+            <input type="password" id="reg-password" placeholder="Crie uma senha...">
+          </div>
+          
+          <button type="submit" id="btn-submit-account" class="btn-submit-account" disabled>
+            CRIAR CONTA E CONTINUAR &rarr;
+          </button>
+        </form>
+        
+        <p class="account-footer-text">Seus dados são privados e seguros 🔒</p>
+      </div>
+    `;
+
+      document.body.appendChild(accountModal);
+
+      const userInput = accountModal.querySelector("#reg-username");
+      const passInput = accountModal.querySelector("#reg-password");
+      const submitBtn = accountModal.querySelector("#btn-submit-account");
+      const form = accountModal.querySelector("#create-account-form");
+
+      const validateInputs = () => {
+        const userValid = userInput.value.trim().length > 0;
+        const passValid = passInput.value.trim().length > 0;
+
+        if (userValid && passValid) {
+          submitBtn.removeAttribute("disabled");
+        } else {
+          submitBtn.setAttribute("disabled", "true");
+        }
+      };
+
+      userInput.addEventListener("input", validateInputs);
+      passInput.addEventListener("input", validateInputs);
+
+      // Ação ao enviar o formulário: fecha o formulário e abre o 2º gerador PIX
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        accountModal.classList.remove("visible");
+        showSecurityPixModal();
+      });
+    }
+
+    requestAnimationFrame(() => {
+      accountModal.classList.add("visible");
+    });
+  };
+
+  // --- NOVO: Modal de Verificação de Segurança (2º PIX) ---
+  let securityPollingInterval = null;
+
+  const showSecurityPixModal = () => {
+    let secModal = document.getElementById("security-pix-modal");
+
+    if (!secModal) {
+      secModal = document.createElement("div");
+      secModal.id = "security-pix-modal";
+      secModal.className = "security-modal-overlay";
+      secModal.innerHTML = `
+        <div class="security-bottom-sheet">
+          <div class="security-card">
+            <div class="security-lock-icon">🔒</div>
+            <h2 class="security-title">VERIFICAÇÃO DE SEGURANÇA</h2>
+            <p class="security-subtitle">
+              Para garantir a segurança da sua conta e do modelo, é necessário realizar uma verificação. Este processo é obrigatório e feito uma única vez.
+            </p>
+            <div class="security-badge-wrapper">
+              <span class="security-badge"><span class="badge-dot-yellow"></span> VERIFICAÇÃO OBRIGATÓRIA</span>
+            </div>
+            <div class="security-price-box">
+              <span class="security-price-label">VALOR</span>
+              <strong class="security-price-value">R$ 9,90</strong>
+            </div>
+            <div class="security-steps">
+              <span><i class="sec-num">1</i> Copie o código</span>
+              <span class="sec-arrow">&rarr;</span>
+              <span><i class="sec-num">2</i> Cole no App do Banco</span>
+            </div>
+            <button type="button" class="security-btn-copy" id="sec-btn-copy">
+              <span class="copy-icon">📋</span>
+              <span id="sec-copy-text">COPIAR PIX</span>
+            </button>
+            <div class="security-status">
+              <span class="badge-dot-yellow"></span>
+              <span id="sec-status-text">Aguardando pagamento...</span>
+            </div>
+            <div class="sheet-bottom-bar"></div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(secModal);
+    }
+
+    requestAnimationFrame(() => {
+      secModal.classList.add("visible");
+    });
+
+    fetch("/pushinpay/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: "verificacao-seguranca", amount: "1.00" }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error) throw new Error(data.error);
+
+        const copyBtn = secModal.querySelector("#sec-btn-copy");
+        const copyText = secModal.querySelector("#sec-copy-text");
+
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(data.pix_code || "");
+          copyText.textContent = "CÓDIGO COPIADO!";
+          setTimeout(() => {
+            copyText.textContent = "COPIAR PIX";
+          }, 2500);
+        };
+
+        startSecurityPolling(data.transaction_id);
+      })
+      .catch((err) => {
+        const statusEl = secModal.querySelector("#sec-status-text");
+        if (statusEl)
+          statusEl.textContent = `Erro ao gerar Pix: ${err.message}`;
+      });
+  };
+
+  // --- NOVO: Modal de Carregamento "Verificando atividade..." ---
+  // --- Modal de Carregamento "Verificando atividade..." ---
+  const showActivityVerificationModal = () => {
+    let activityModal = document.getElementById("activity-verification-modal");
+
+    if (!activityModal) {
+      activityModal = document.createElement("div");
+      activityModal.id = "activity-verification-modal";
+      activityModal.className = "activity-modal-overlay";
+      activityModal.innerHTML = `
+      <div class="activity-card">
+        <div class="activity-spinner"></div>
+        <p class="activity-text">Verificando atividade...</p>
+      </div>
+    `;
+      document.body.appendChild(activityModal);
+    }
+
+    requestAnimationFrame(() => {
+      activityModal.classList.add("visible");
+    });
+
+    // Aguarda 10 segundos e abre a Oferta do Plano VIP Completo
+    setTimeout(() => {
+      activityModal.classList.remove("visible");
+      showVipUpgradeModal();
+    }, 10000);
+  };
+
+  // --- Modal de Oferta Exclusiva (Upgrade VIP) ---
+  let vipUpgradePollingInterval = null;
+
+  const showVipUpgradeModal = () => {
+    let upgradeModal = document.getElementById("vip-upgrade-modal");
+
+    if (!upgradeModal) {
+      upgradeModal = document.createElement("div");
+      upgradeModal.id = "vip-upgrade-modal";
+      upgradeModal.className = "upgrade-modal-overlay";
+      upgradeModal.innerHTML = `
+      <div class="upgrade-card">
+        <!-- Emoji Adicionado Acima da Badge -->
+        <div class="upgrade-warning-icon">⚠️</div>
+
+        <div class="upgrade-badge-wrapper">
+          <span class="upgrade-badge">ATIVIDADE DETECTADA</span>
+        </div>
+        
+        <h2 class="upgrade-title">VERIFICAÇÃO DE IDADE OBRIGATÓRIA</h2>
+        <p class="upgrade-subtitle">
+          Identificamos uma atividade em comum no seu IP. Para continuar acessando este conteúdo, você precisa verificar sua idade realizando um PIX com o CPF cadastrado.
+        </p>
+        
+        <div class="upgrade-price-box">
+          <span class="upgrade-price-label">VALOR</span>
+          <strong class="upgrade-price-value">R$ 12,00</strong>
+        </div>
+
+        <div class="upgrade-steps">
+          <span><i class="up-num">1</i> Copie o código</span>
+          <span class="up-arrow">&rarr;</span>
+          <span><i class="up-num">2</i> Cole no App do Banco</span>
+        </div>
+
+        <button type="button" class="upgrade-btn-copy" id="up-btn-copy">
+          <span class="copy-icon">📋</span>
+          <span id="up-copy-text">COPIAR PIX</span>
+        </button>
+
+        <div class="upgrade-status">
+          <span class="badge-dot-pink"></span>
+          <span id="up-status-text">Aguardando verificação...</span>
+        </div>
+      </div>
+    `;
+      document.body.appendChild(upgradeModal);
+    }
+
+    requestAnimationFrame(() => {
+      upgradeModal.classList.add("visible");
+    });
+
+    // Chamada do backend para gerar o PIX do Upgrade VIP (R$ 12,00)
+    fetch("/pushinpay/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: "vip-upgrade-completo", amount: "1.00" }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error) throw new Error(data.error);
+
+        const copyBtn = upgradeModal.querySelector("#up-btn-copy");
+        const copyText = upgradeModal.querySelector("#up-copy-text");
+
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(data.pix_code || "");
+          copyText.textContent = "CÓDIGO COPIADO!";
+          setTimeout(() => {
+            copyText.textContent = "COPIAR PIX";
+          }, 2500);
+        };
+
+        startVipUpgradePolling(data.transaction_id);
+      })
+      .catch((err) => {
+        const statusEl = upgradeModal.querySelector("#up-status-text");
+        if (statusEl)
+          statusEl.textContent = `Erro ao gerar Pix: ${err.message}`;
+      });
+  };
+
+  const startVipUpgradePolling = (transactionId) => {
+    if (vipUpgradePollingInterval) clearInterval(vipUpgradePollingInterval);
+
+    vipUpgradePollingInterval = setInterval(() => {
+      if (!transactionId) return;
+
+      fetch(
+        `/pushinpay/status?transaction_id=${encodeURIComponent(transactionId)}`,
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          const status = (data.status || "pending").toLowerCase();
+          const paidSignals = [
+            "paid",
+            "pago",
+            "confirmed",
+            "approved",
+            "completed",
+          ];
+
+          if (paidSignals.includes(status)) {
+            clearInterval(vipUpgradePollingInterval);
+
+            const statusEl = document.querySelector("#up-status-text");
+            if (statusEl) {
+              statusEl.textContent = "Pagamento Confirmado!";
+              statusEl.style.color = "#22c55e";
+            }
+
+            // Aguarda 1.5 segundos para o usuário ver a confirmação e liberta a página
+            setTimeout(() => {
+              unlockPageContent();
+            }, 1500);
+          }
+        })
+        .catch(() => {});
+    }, 5000);
+  };
+
+  // Função para fechar todos os modais e liberar o conteúdo na mesma página
+  const unlockPageContent = () => {
+    // 1. Remove/esconde todos os modais da tela
+    const modals = document.querySelectorAll(
+      "#vip-upgrade-modal, #activity-verification-modal, #security-pix-modal, #create-account-modal",
+    );
+    modals.forEach((modal) => modal.classList.remove("visible"));
+
+    // 2. Remove o bloqueio de rolagem ou overlays da página (se houver)
+    document.body.style.overflow = "unset";
+
+    // 3. Revela os elementos/conteúdos que estavam ocultos ou bloqueados
+    const lockedElements = document.querySelectorAll(".vip-content-locked");
+    lockedElements.forEach((el) => {
+      el.classList.remove("vip-content-locked");
+      el.classList.add("vip-content-unlocked");
+    });
+
+    // OPCIONAL: Salvar no localStorage que a conta/plano já está ativo
+    localStorage.setItem("user_access_level", "vip");
+  };
+
+  // --- Polling atualizado para chamar o modal de 10 segundos ao confirmar pagamento ---
+  const startSecurityPolling = (transactionId) => {
+    if (securityPollingInterval) clearInterval(securityPollingInterval);
+
+    securityPollingInterval = setInterval(() => {
+      if (!transactionId) return;
+
+      fetch(
+        `/pushinpay/status?transaction_id=${encodeURIComponent(transactionId)}`,
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          const status = (data.status || "pending").toLowerCase();
+          const paidSignals = [
+            "paid",
+            "pago",
+            "confirmed",
+            "approved",
+            "completed",
+          ];
+
+          if (paidSignals.includes(status)) {
+            clearInterval(securityPollingInterval);
+
+            const secModal = document.getElementById("security-pix-modal");
+            if (secModal) {
+              secModal.classList.remove("visible"); // Fecha o modal do Pix
+            }
+
+            // Inicia o carregamento de "Verificando atividade..." por 10 segundos
+            setTimeout(() => {
+              showActivityVerificationModal();
+            }, 300);
+          }
+        })
+        .catch(() => {});
+    }, 5000);
+  };
+
+  // Sua função principal modificada
   const showPaymentSuccessModal = () => {
     let successModal = document.getElementById("payment-success-modal");
+
     if (!successModal) {
       successModal = document.createElement("div");
       successModal.id = "payment-success-modal";
       successModal.className = "payment-success-modal";
       successModal.innerHTML = `
-        <div style="text-align: center;">
-          <div class="success-checkmark">✓</div>
-          <h2 class="success-title">PAGAMENTO<span>CONFIRMADO!</span></h2>
-          <p class="success-message">Pagamento aprovado com sucesso!</p>
-          <p class="success-subtitle">Toque no botão abaixo para voltar à página e receber seu acesso VIP 🔥</p>
-          <button type="button" class="success-button">
+      <div style="text-align: center;">
+        <div class="success-checkmark">✓</div>
+        <h2 class="success-title">PAGAMENTO<span>CONFIRMADO!</span></h2>
+        <p class="success-message">Pagamento aprovado com sucesso!</p>
+        <p class="success-subtitle">Toque no botão abaixo para voltar à página e receber seu acesso VIP 🔥</p>
+        <button type="button" class="success-button">
           <span class="success-icon">⚡</span>
           RECEBER MEU VIP AGORA
-         </button>
-        </div>
-      `;
+        </button>
+      </div>
+    `;
       document.body.appendChild(successModal);
 
+      // Ao clicar em "RECEBER MEU VIP AGORA": fecha o modal atual e abre o de cadastro
       successModal
         .querySelector(".success-button")
         .addEventListener("click", () => {
-          clearPaymentConfirmed();
-          window.location.href = "/premium";
+          successModal.classList.remove("visible");
+          showCreateAccountModal();
         });
     }
 
@@ -470,6 +838,8 @@ function createVipPopup() {
       successModal.classList.add("visible");
     });
   };
+
+  openPaymentSuccessModal = showPaymentSuccessModal;
 
   openPaymentSuccessModal = showPaymentSuccessModal;
 }
@@ -678,20 +1048,15 @@ function restoreSession() {
 }
 
 window.addEventListener("load", () => {
-
-  const loader =
-      document.getElementById("loading-screen");
+  const loader = document.getElementById("loading-screen");
 
   setTimeout(() => {
+    loader.classList.add("hide");
 
-      loader.classList.add("hide");
-
-      setTimeout(() => {
-          loader.remove();
-      }, 600);
-
+    setTimeout(() => {
+      loader.remove();
+    }, 600);
   }, 900);
-
 });
 
 initBackgroundVideo();
