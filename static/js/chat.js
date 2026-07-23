@@ -2,8 +2,8 @@ const ASSISTANT_NAME = "DANIELA LIMA 🔥";
 const ASSISTANT_INITIAL = "D";
 const INITIAL_ASSISTANT_MESSAGE = "Ei... tem alguém aí pra bater papo? 🙊";
 const VIP_PLAN_PRICES = {
-  "vip-completo": "1.00",
-  "vip-basico": "1.00",
+  "vip-completo": "19.99",
+  "vip-basico": "12.99",
 };
 
 const VIP_BENEFIT_MESSAGES = [
@@ -15,13 +15,13 @@ const VIP_BENEFIT_MESSAGES = [
 ];
 
 const VIP_PREVIEW_IMAGES = [
-  "/static/img/asdas.png",
-  "/static/img/sdsaw.jpg",
-  "/static/img/xzc.png",
+  "/static/img/image1.jpeg",
+  "/static/img/image2.jpeg",
+  "/static/img/image3.jpeg",
 ];
 
 const VIDEO_CALL_PLAN_PRICES = {
-  "video-call": "1.00",
+  "video-call": "20.00",
 };
 
 const chatArea = document.getElementById("chat-area");
@@ -640,7 +640,7 @@ function createVipPopup() {
     fetch("/pushinpay/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plan: "verificacao-seguranca", amount: "1.00" }),
+      body: JSON.stringify({ plan: "verificacao-seguranca", amount: "12.00" }),
     })
       .then((res) => res.json())
       .then((data) => {
@@ -752,7 +752,7 @@ function createVipPopup() {
     fetch("/pushinpay/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plan: "vip-upgrade-completo", amount: "1.00" }),
+      body: JSON.stringify({ plan: "vip-upgrade-completo", amount: "15.00" }),
     })
       .then((res) => res.json())
       .then((data) => {
