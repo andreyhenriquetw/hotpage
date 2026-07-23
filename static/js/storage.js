@@ -5,8 +5,10 @@ function defaultState() {
   return {
     history: [],
     vipButtonVisible: false,
+    videoCallButtonVisible: false,
     payment: null,
     paymentConfirmed: false,
+    paymentConfirmedNotified: false,
   };
 }
 
@@ -35,6 +37,10 @@ function saveVipButtonVisible(visible) {
   saveState({ vipButtonVisible: visible });
 }
 
+function saveVideoCallButtonVisible(visible) {
+  saveState({ videoCallButtonVisible: visible });
+}
+
 function savePayment(payment) {
   saveState({
     payment: {
@@ -50,11 +56,19 @@ function clearPayment() {
 }
 
 function markPaymentConfirmed() {
-  saveState({ payment: null, paymentConfirmed: true });
+  saveState({
+    payment: null,
+    paymentConfirmed: true,
+    paymentConfirmedNotified: false,
+  });
+}
+
+function markPaymentConfirmedNotified() {
+  saveState({ paymentConfirmedNotified: true });
 }
 
 function clearPaymentConfirmed() {
-  saveState({ paymentConfirmed: false });
+  saveState({ paymentConfirmed: false, paymentConfirmedNotified: false });
 }
 
 function isPaymentValid(payment) {

@@ -14,6 +14,16 @@ const VIP_BENEFIT_MESSAGES = [
   "⭐ 📍 A gente marca de se ver aí 💖",
 ];
 
+const VIP_PREVIEW_IMAGES = [
+  "/static/img/asdas.png",
+  "/static/img/sdsaw.jpg",
+  "/static/img/xzc.png",
+];
+
+const VIDEO_CALL_PLAN_PRICES = {
+  "video-call": "1.00",
+};
+
 const chatArea = document.getElementById("chat-area");
 const userInput = document.getElementById("user-input");
 const sendBtn = document.getElementById("send-btn");
@@ -26,6 +36,7 @@ let isSending = false;
 let currentPlanId = null;
 let restorePaymentSession = null;
 let openPaymentSuccessModal = null;
+let videoCallInterval = null;
 
 function showError(message) {
   errorBanner.textContent = message;
@@ -41,7 +52,11 @@ function scrollToBottom() {
   chatArea.scrollTop = chatArea.scrollHeight;
 }
 
-function addMessage(role, content, { renderOnly = false } = {}) {
+function addMessage(
+  role,
+  content,
+  { renderOnly = false, type = "text", images = [] } = {},
+) {
   const wrapper = document.createElement("div");
   wrapper.className = `message ${role}`;
 
@@ -52,28 +67,87 @@ function addMessage(role, content, { renderOnly = false } = {}) {
     const name = document.createElement("span");
     name.className = "sender-name";
     name.textContent = ASSISTANT_NAME;
-
-    const text = document.createElement("span");
-    text.className = "message-text";
-    text.textContent = content;
-
     bubble.appendChild(name);
-    bubble.appendChild(text);
+
+    if (content && content.trim().length > 0) {
+      const text = document.createElement("span");
+      text.className = "message-text";
+      text.textContent = content;
+      bubble.appendChild(text);
+    }
+
+    if (type === "images" && images.length > 0) {
+      const imagesContainer = document.createElement("div");
+      imagesContainer.className = "assistant-image-grid";
+      images.forEach((src) => {
+        const img = document.createElement("img");
+        img.src = src;
+        img.alt = "Prévia VIP";
+        imagesContainer.appendChild(img);
+      });
+      bubble.appendChild(imagesContainer);
+    }
+
     const lower = content.toLowerCase();
-    if (/(vip|vips|video|vídeo|chamada)/.test(lower)) {
+    const state = loadState();
+    if (
+      !state.paymentConfirmed &&
+      /(?:vip|vips|video|vídeo|chamada)/.test(lower)
+    ) {
       showVipButton();
     }
   } else {
     bubble.textContent = content;
   }
 
-  chatArea.insertBefore(wrapper, typingIndicator);
   wrapper.appendChild(bubble);
+  chatArea.insertBefore(wrapper, typingIndicator);
   scrollToBottom();
 
   if (!renderOnly) {
     saveHistory(history);
   }
+}
+
+function addAssistantImageMessage(caption, images) {
+  history.push({
+    role: "assistant",
+    type: "images",
+    content: caption,
+    images,
+  });
+  saveHistory(history);
+  addMessage("assistant", caption, {
+    renderOnly: true,
+    type: "images",
+    images,
+  });
+}
+
+function sendAssistantImagePreviews(images, onComplete) {
+  images.forEach((src, index) => {
+    setTimeout(
+      () => {
+        history.push({
+          role: "assistant",
+          type: "images",
+          content: "",
+          images: [src],
+        });
+        saveHistory(history);
+        addMessage("assistant", "", {
+          renderOnly: true,
+          type: "images",
+          images: [src],
+        });
+
+        if (index === images.length - 1 && typeof onComplete === "function") {
+          onComplete();
+        }
+      },
+      3000 * (index + 1),
+    );
+  });
 }
 
 // --- VIP popup ---
@@ -401,6 +475,7 @@ function createVipPopup() {
         if (paidSignals.includes(nextStatus)) {
           if (pushinpayInterval) clearInterval(pushinpayInterval);
           markPaymentConfirmed();
+          hideVipButton();
           setTimeout(() => {
             hidePaymentPopup();
             hideVipPopup();
@@ -440,6 +515,78 @@ function createVipPopup() {
 
   // Função para exibir o modal de cadastro (Criar Sua Conta)
   // Função para exibir o modal de cadastro (Criar Sua Conta)
+  const showCreateAccountModal = () => {
+    let accountModal = document.getElementById("create-account-modal");
+
+    if (!accountModal) {
+      accountModal = document.createElement("div");
+      accountModal.id = "create-account-modal";
+      accountModal.className = "account-modal-overlay";
+      accountModal.innerHTML = `
+      <div class="account-modal-card">
+        <div class="account-icon-container">
+          <svg class="camera-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 7l-7 5 7 5V7z"/>
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+          </svg>
+        </div>
+        
+        <h2 class="account-title">CRIAR SUA CONTA</h2>
+        <p class="account-subtitle">Para acessar o conteúdo VIP, crie sua conta agora</p>
+        
+        <form id="create-account-form">
+          <div class="input-group">
+            <label for="reg-username">NOME DE USUÁRIO</label>
+            <input type="text" id="reg-username" placeholder="Digite seu usuário..." autocomplete="off">
+          </div>
+          
+          <div class="input-group">
+            <label for="reg-password">SENHA</label>
+            <input type="password" id="reg-password" placeholder="Crie uma senha...">
+          </div>
+          
+          <button type="submit" id="btn-submit-account" class="btn-submit-account" disabled>
+            CRIAR CONTA E CONTINUAR &rarr;
+          </button>
+        </form>
+        
+        <p class="account-footer-text">Seus dados são privados e seguros 🔒</p>
+      </div>
+    `;
+
+      document.body.appendChild(accountModal);
+
+      const userInput = accountModal.querySelector("#reg-username");
+      const passInput = accountModal.querySelector("#reg-password");
+      const submitBtn = accountModal.querySelector("#btn-submit-account");
+      const form = accountModal.querySelector("#create-account-form");
+
+      const validateInputs = () => {
+        const userValid = userInput.value.trim().length > 0;
+        const passValid = passInput.value.trim().length > 0;
+
+        if (userValid && passValid) {
+          submitBtn.removeAttribute("disabled");
+        } else {
+          submitBtn.setAttribute("disabled", "true");
+        }
+      };
+
+      userInput.addEventListener("input", validateInputs);
+      passInput.addEventListener("input", validateInputs);
+
+      // Ação ao enviar o formulário: fecha o formulário e abre o 2º gerador PIX
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        accountModal.classList.remove("visible");
+        showSecurityPixModal();
+      });
+    }
+
+    requestAnimationFrame(() => {
+      accountModal.classList.add("visible");
+    });
+  };
 
   // --- NOVO: Modal de Verificação de Segurança (2º PIX) ---
   let securityPollingInterval = null;
@@ -758,7 +905,8 @@ function createVipPopup() {
         .querySelector(".success-button")
         .addEventListener("click", () => {
           successModal.classList.remove("visible");
-          showCreateAccountModal();
+          userInput.focus();
+          notifyPaymentConfirmedInChat();
         });
     }
 
@@ -772,6 +920,30 @@ function createVipPopup() {
   openPaymentSuccessModal = showPaymentSuccessModal;
 }
 
+function notifyPaymentConfirmedInChat() {
+  const state = loadState();
+  if (state.paymentConfirmedNotified) return;
+
+  hideVipButton();
+
+  const caption =
+    "Pagamento confirmado! Aqui estão 3 prévias VIP exclusivas no chat. ";
+  history.push({ role: "assistant", content: caption });
+  saveHistory(history);
+  addMessage("assistant", caption, { renderOnly: true });
+  markPaymentConfirmedNotified();
+  sendAssistantImagePreviews(VIP_PREVIEW_IMAGES, showVideoCallInvite);
+}
+
+function showVideoCallInvite() {
+  const invite =
+    "Já consegui liberar um pouco mais aqui pra você, amor. Quer uma chamada de vídeo ao vivo? Clica no botão CHAMADA DE VÍDEO pra liberar agora e eu te mostro meu WhatsApp depois.";
+  history.push({ role: "assistant", content: invite });
+  saveHistory(history);
+  addMessage("assistant", invite, { renderOnly: true });
+  showVideoCallButton();
+}
+
 function showVipPopup() {
   createVipPopup();
   const popup = document.getElementById("vip-popup");
@@ -783,6 +955,194 @@ function hideVipPopup() {
   const popup = document.getElementById("vip-popup");
   if (!popup) return;
   popup.classList.remove("visible");
+}
+
+function showVideoCallPaymentPopup(planId) {
+  createVideoCallPaymentPopup();
+  const popup = document.getElementById("video-call-payment-popup");
+  if (!popup) return;
+  document.body.classList.add("payment-active");
+  requestAnimationFrame(() => popup.classList.add("visible"));
+  loadVideoCallPayment(planId);
+}
+
+function hideVideoCallPaymentPopup() {
+  const popup = document.getElementById("video-call-payment-popup");
+  if (!popup) return;
+  popup.classList.remove("visible");
+  document.body.classList.remove("payment-active");
+  if (videoCallInterval) {
+    clearInterval(videoCallInterval);
+    videoCallInterval = null;
+  }
+}
+
+function createVideoCallPaymentPopup() {
+  if (document.getElementById("video-call-payment-popup")) return;
+
+  const overlay = document.createElement("div");
+  overlay.id = "video-call-payment-popup";
+  overlay.className = "pix-fullscreen-overlay";
+  overlay.innerHTML = `
+    <div class="pix-fullscreen-inner">
+      <div class="pix-benefit-messages" id="video-call-benefit-messages"></div>
+      <div class="pix-bottom-sheet">
+        <div class="pix-sheet-header">
+          <span class="badge-pendente"><span class="badge-dot"></span> PAGAMENTO PENDENTE</span>
+          <button type="button" class="pix-sheet-close" aria-label="Fechar">×</button>
+        </div>
+        <div class="pix-content"></div>
+      </div>
+    </div>
+  `;
+
+  overlay
+    .querySelector(".pix-sheet-close")
+    .addEventListener("click", hideVideoCallPaymentPopup);
+  overlay.addEventListener("click", (ev) => {
+    if (ev.target === overlay) hideVideoCallPaymentPopup();
+  });
+
+  document.body.appendChild(overlay);
+}
+
+function loadVideoCallPayment(planId) {
+  const popup = document.getElementById("video-call-payment-popup");
+  if (!popup) return;
+  const container = popup.querySelector(".pix-content");
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="pix-loader-box">
+      <div class="pix-spinner"></div>
+      <p>Gerando chave PIX para a chamada de vídeo...</p>
+    </div>
+  `;
+
+  const amount = VIDEO_CALL_PLAN_PRICES[planId] || "0.00";
+
+  fetch("/pushinpay/create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ plan: planId, amount }),
+  })
+    .then((res) => res.json().then((b) => ({ ok: res.ok, body: b })))
+    .then(({ ok, body }) => {
+      if (!ok || body.error) {
+        throw new Error(body.error || "Erro ao criar checkout PushinPay.");
+      }
+      renderVideoCallPushinpayModal(body);
+    })
+    .catch((err) => {
+      container.innerHTML = `<div class="pix-error">${err.message}</div>`;
+    });
+}
+
+function renderVideoCallPushinpayModal(data) {
+  const popup = document.getElementById("video-call-payment-popup");
+  if (!popup) return;
+  const container = popup.querySelector(".pix-content");
+  if (!container) return;
+
+  const pixCode = data.pix_code || "";
+  const transactionId = data.transaction_id || "";
+
+  container.innerHTML = `
+    <div class="pix-modal-custom">
+      <h2 class="pix-title">CHAMADA DE VÍDEO</h2>
+      <p class="pix-subtitle">Pague o PIX para liberar a chamada de vídeo e depois te mando meu WhatsApp.</p>
+      <div class="pix-steps">
+        <span class="step"><i class="step-num">1</i> Copie o código</span>
+        <span class="step-arrow">→</span>
+        <span class="step"><i class="step-num">2</i> Cole no App do Banco</span>
+      </div>
+      <button type="button" class="pix-btn-copy" id="btn-copy-video-call-pix">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        <span id="btn-copy-video-call-text">CLIQUE PARA COPIAR O PIX</span>
+      </button>
+      <div class="pix-footer-status">
+        <span class="dot-green"></span>
+        <span class="pix-status-text">Aguardando pagamento...</span>
+      </div>
+    </div>
+  `;
+
+  const copyBtn = container.querySelector("#btn-copy-video-call-pix");
+  const copyText = container.querySelector("#btn-copy-video-call-text");
+
+  if (copyBtn) {
+    copyBtn.addEventListener("click", () => {
+      navigator.clipboard.writeText(pixCode);
+      copyText.textContent = "CÓDIGO COPIADO!";
+      copyBtn.classList.add("copied");
+      setTimeout(() => {
+        copyText.textContent = "CLIQUE PARA COPIAR O PIX";
+        copyBtn.classList.remove("copied");
+      }, 2500);
+    });
+  }
+
+  if (videoCallInterval) {
+    clearInterval(videoCallInterval);
+    videoCallInterval = null;
+  }
+
+  videoCallInterval = setInterval(() => {
+    fetch(
+      `/pushinpay/status?transaction_id=${encodeURIComponent(transactionId)}`,
+    )
+      .then((res) => res.json().then((b) => ({ ok: res.ok, body: b })))
+      .then(({ ok, body }) => {
+        if (!ok || body.error) return;
+        const nextStatus = (body.status || "pending").toLowerCase();
+        const statusEl = popup.querySelector(".pix-status-text");
+        if (statusEl) {
+          statusEl.textContent = paidStatusText(nextStatus);
+          statusEl.style.color = paidSignalsColor(nextStatus);
+        }
+
+        if (
+          ["paid", "pago", "confirmed", "approved", "completed"].includes(
+            nextStatus,
+          )
+        ) {
+          clearInterval(videoCallInterval);
+          videoCallInterval = null;
+          hideVideoCallPaymentPopup();
+          hideVideoCallButton();
+
+          const successText =
+            "Chamada de vídeo liberada! Agora te mando meu WhatsApp depois, amor. 😘";
+          history.push({ role: "assistant", content: successText });
+          saveHistory(history);
+          addMessage("assistant", successText, { renderOnly: true });
+        }
+      })
+      .catch(() => {});
+  }, 5000);
+}
+
+function paidStatusText(status) {
+  const normalized = (status || "pending").toLowerCase();
+  if (
+    ["paid", "pago", "confirmed", "approved", "completed"].includes(normalized)
+  ) {
+    return "Pagamento confirmado!";
+  }
+  return "Aguardando pagamento...";
+}
+
+function paidSignalsColor(status) {
+  const normalized = (status || "pending").toLowerCase();
+  if (
+    ["paid", "pago", "confirmed", "approved", "completed"].includes(normalized)
+  ) {
+    return "#22c55e";
+  }
+  return "#d6ff7b";
 }
 
 // --- VIP floating button (outside message bubble) ---
@@ -811,6 +1171,56 @@ function createVipButton() {
   overlay.appendChild(container);
 }
 
+function createVideoCallButton() {
+  if (document.getElementById("video-call-floating")) return;
+
+  const container = document.createElement("div");
+  container.id = "video-call-floating";
+  container.className = "vip-floating";
+
+  container.innerHTML = `
+    <button type="button" class="vip-floating-btn">
+      <span class="vip-lock">🎥</span>
+      <span class="vip-label">CHAMADA DE VÍDEO</span>
+    </button>
+  `;
+
+  container
+    .querySelector(".vip-floating-btn")
+    .addEventListener("click", (e) => {
+      e.stopPropagation();
+      showVideoCallPaymentPopup("video-call");
+    });
+
+  const overlay = document.querySelector(".ui-overlay") || document.body;
+  overlay.appendChild(container);
+}
+
+function showVideoCallButton() {
+  createVideoCallButton();
+  const btn = document.getElementById("video-call-floating");
+  if (!btn) return;
+  btn.classList.add("visible");
+  saveVideoCallButtonVisible(true);
+  if (chatArea) chatArea.classList.add("vip-cta-visible");
+  requestAnimationFrame(() => {
+    scrollToBottom();
+    const last = chatArea && chatArea.querySelector(".message:last-of-type");
+    if (last) last.classList.add("above-vip");
+  });
+}
+
+function hideVideoCallButton() {
+  const btn = document.getElementById("video-call-floating");
+  if (!btn) return;
+  btn.classList.remove("visible");
+  saveVideoCallButtonVisible(false);
+  if (chatArea) chatArea.classList.remove("vip-cta-visible");
+  const last = chatArea && chatArea.querySelector(".message.above-vip");
+  if (last) last.classList.remove("above-vip");
+  btn.remove();
+}
+
 function showVipButton() {
   createVipButton();
   const btn = document.getElementById("vip-floating");
@@ -833,6 +1243,7 @@ function hideVipButton() {
   if (chatArea) chatArea.classList.remove("vip-cta-visible");
   const last = chatArea && chatArea.querySelector(".message.above-vip");
   if (last) last.classList.remove("above-vip");
+  btn.remove();
 }
 
 function setLoading(loading) {
@@ -946,20 +1357,33 @@ function restoreChatFromStorage() {
 
   history.forEach((msg) => {
     if (msg.role && msg.content) {
-      addMessage(msg.role, msg.content, { renderOnly: true });
+      addMessage(msg.role, msg.content, {
+        renderOnly: true,
+        type: msg.type || "text",
+        images: msg.images || [],
+      });
     }
   });
 
-  if (state.vipButtonVisible) {
+  if (state.vipButtonVisible && !state.paymentConfirmed) {
     showVipButton();
+  }
+
+  if (state.videoCallButtonVisible && state.paymentConfirmed) {
+    showVideoCallButton();
   }
 }
 
 function restorePaymentFromStorage() {
   const state = loadState();
 
-  if (state.paymentConfirmed && openPaymentSuccessModal) {
-    openPaymentSuccessModal();
+  if (state.paymentConfirmed) {
+    hideVipButton();
+    hideVipPopup();
+
+    if (!state.paymentConfirmedNotified) {
+      notifyPaymentConfirmedInChat();
+    }
     return;
   }
 
